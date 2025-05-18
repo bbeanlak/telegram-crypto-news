@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crypto Fundamental News</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/telegram-web-app/6.7.0/twapp.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -81,13 +80,14 @@
             background-color: #1e88e5;
             color: white;
         }
-        .loader {
-            text-align: center;
-            padding: 24px;
-        }
-        .loader::after {
-            content: "Memuat berita...";
-            color: #666;
+        .debug-info {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 16px;
+            font-family: monospace;
+            font-size: 12px;
         }
     </style>
 </head>
@@ -95,6 +95,11 @@
     <div class="container">
         <div class="header">
             <h1>Crypto Fundamental News</h1>
+        </div>
+        
+        <!-- Debug info div - akan tersembunyi di produksi -->
+        <div id="debug-info" class="debug-info">
+            Menginisialisasi aplikasi...
         </div>
         
         <div class="filter-buttons">
@@ -107,17 +112,40 @@
         </div>
         
         <div id="news-container">
-            <div class="loader"></div>
+            <div style="text-align: center; padding: 24px; color: #666;">
+                Memuat berita...
+            </div>
         </div>
     </div>
 
     <script>
-        // Initialize Telegram WebApp
-        const webApp = window.Telegram.WebApp;
-        webApp.expand();
-        webApp.ready();
+        // Fungsi untuk log debug
+        function logDebug(message) {
+            const debugDiv = document.getElementById('debug-info');
+            if (debugDiv) {
+                const timestamp = new Date().toLocaleTimeString();
+                debugDiv.innerHTML += `<br>${timestamp}: ${message}`;
+            }
+            // Log ke console juga
+            console.log(message);
+        }
         
-        // Sample news data - in a real app, you would fetch this from an API
+        // Coba inisialisasi Telegram WebApp jika tersedia
+        let webApp = null;
+        try {
+            if (window.Telegram && window.Telegram.WebApp) {
+                webApp = window.Telegram.WebApp;
+                webApp.expand();
+                webApp.ready();
+                logDebug("Telegram WebApp berhasil diinisialisasi");
+            } else {
+                logDebug("Telegram WebApp tidak tersedia, berjalan dalam mode browser");
+            }
+        } catch (error) {
+            logDebug("Error saat inisialisasi Telegram WebApp: " + error.message);
+        }
+        
+        // Data berita statis
         const newsData = [
             {
                 id: 1,
@@ -201,9 +229,16 @@
             }
         ];
         
-        // Function to render news items
+        // Fungsi untuk render berita
         function renderNews(filteredNews = newsData) {
+            logDebug(`Merender ${filteredNews.length} berita`);
+            
             const newsContainer = document.getElementById('news-container');
+            if (!newsContainer) {
+                logDebug("Error: Container berita tidak ditemukan!");
+                return;
+            }
+            
             newsContainer.innerHTML = '';
             
             if (filteredNews.length === 0) {
@@ -211,15 +246,20 @@
                 return;
             }
             
-            filteredNews.forEach(news => {
+            for (let i = 0; i < filteredNews.length; i++) {
+                const news = filteredNews[i];
+                
+                // Buat elemen berita
                 const newsItem = document.createElement('div');
                 newsItem.className = 'news-item';
                 
+                // Buat kategori tags
                 let categoryHTML = '';
-                news.categories.forEach(category => {
-                    categoryHTML += `<span class="category-tag">${category}</span>`;
-                });
+                for (let j = 0; j < news.categories.length; j++) {
+                    categoryHTML += `<span class="category-tag">${news.categories[j]}</span>`;
+                }
                 
+                // Isi HTML
                 newsItem.innerHTML = `
                     <div class="news-title">${news.title}</div>
                     <div class="news-source">${news.source}</div>
@@ -228,81 +268,78 @@
                     <div class="news-summary">${news.summary}</div>
                 `;
                 
+                // Tambahkan ke container
                 newsContainer.appendChild(newsItem);
-            });
+            }
+            
+            logDebug("Rendering berita selesai");
         }
         
-        // Filter news based on selected category
+        // Fungsi untuk filter berita
         function filterNews(category) {
+            logDebug(`Memfilter berita: ${category}`);
+            
             if (category === 'all') {
                 renderNews();
                 return;
             }
             
-            let filteredNews;
-            
-            if (category === 'fed') {
-                filteredNews = newsData.filter(news => news.categories.includes('fed'));
-            } else if (category === 'regulation') {
-                filteredNews = newsData.filter(news => 
-                    news.categories.includes('regulation') || 
-                    news.categories.includes('sec') ||
-                    news.categories.includes('cbdc')
-                );
-            } else if (category === 'macro') {
-                filteredNews = newsData.filter(news => 
-                    news.categories.includes('macro') || 
-                    news.categories.includes('inflation') ||
-                    news.categories.includes('employment') ||
-                    news.categories.includes('imf')
-                );
-            } else if (category === 'adoption') {
-                filteredNews = newsData.filter(news => news.categories.includes('adoption'));
-            } else if (category === 'defi') {
-                filteredNews = newsData.filter(news => news.categories.includes('defi'));
-            }
+            const filteredNews = newsData.filter(function(news) {
+                return news.categories.indexOf(category) !== -1;
+            });
             
             renderNews(filteredNews);
         }
         
-        // Initialize the app
-        document.addEventListener('DOMContentLoaded', function() {
-            // Render initial news
-            renderNews();
+        // Setup filter buttons (tanpa event listeners yang kompleks)
+        function setupFilterButtons() {
+            logDebug("Setup tombol filter");
             
-            // Add filter button event listeners
             const filterButtons = document.querySelectorAll('.filter-button');
-            filterButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    // Remove active class from all buttons
-                    filterButtons.forEach(btn => btn.classList.remove('active'));
-                    // Add active class to clicked button
+            
+            for (let i = 0; i < filterButtons.length; i++) {
+                const button = filterButtons[i];
+                
+                button.onclick = function() {
+                    // Hapus kelas aktif dari semua tombol
+                    for (let j = 0; j < filterButtons.length; j++) {
+                        filterButtons[j].classList.remove('active');
+                    }
+                    
+                    // Tambahkan kelas aktif ke tombol yang diklik
                     this.classList.add('active');
                     
-                    // Filter news
+                    // Filter berita
                     const filterCategory = this.getAttribute('data-filter');
                     filterNews(filterCategory);
-                });
-            });
-            
-            // In a real app, you would fetch news from an API
-            // fetchCryptoNews();
-        });
-        
-        // Example function to fetch news from an API (not implemented in this demo)
-        function fetchCryptoNews() {
-            // In a real app, you would implement API calls here
-            // Example:
-            // fetch('https://api.cryptonews.com/news')
-            //    .then(response => response.json())
-            //    .then(data => {
-            //        // Process and render news
-            //        renderNews(data.news);
-            //    })
-            //    .catch(error => {
-            //        console.error('Error fetching news:', error);
-            //    });
+                };
+            }
         }
+        
+        // Inisialisasi aplikasi
+        function initApp() {
+            logDebug("Inisialisasi aplikasi");
+            
+            // Render berita pertama kali
+            renderNews();
+            
+            // Setup tombol filter
+            setupFilterButtons();
+            
+            logDebug("Aplikasi berhasil diinisialisasi");
+            
+            // Sembunyikan debug info setelah 5 detik (pada produksi)
+            setTimeout(function() {
+                const debugDiv = document.getElementById('debug-info');
+                if (debugDiv) {
+                    debugDiv.style.display = 'none';
+                }
+            }, 5000);
+        }
+        
+        // Start app
+        logDebug("Memulai aplikasi");
+        initApp();
     </script>
 </body>
 </html>
