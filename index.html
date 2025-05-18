@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Fundamental News</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/telegram-web-app/6.7.0/twapp.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+        .header {
+            background-color: #1e88e5;
+            color: white;
+            padding: 16px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+            margin-bottom: 16px;
+        }
+        .news-item {
+            background-color: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .news-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .news-source {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .news-date {
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+        .news-summary {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .category-tag {
+            display: inline-block;
+            background-color: #e3f2fd;
+            color: #1565c0;
+            padding: 4px 8px;
+            border-radius: 16px;
+            font-size: 12px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        .filter-buttons {
+            display: flex;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+        }
+        .filter-button {
+            background-color: #e0e0e0;
+            border: none;
+            border-radius: 16px;
+            padding: 8px 16px;
+            margin-right: 8px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .filter-button.active {
+            background-color: #1e88e5;
+            color: white;
+        }
+        .loader {
+            text-align: center;
+            padding: 24px;
+        }
+        .loader::after {
+            content: "Memuat berita...";
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Crypto Fundamental News</h1>
+        </div>
+        
+        <div class="filter-buttons">
+            <button class="filter-button active" data-filter="all">Semua</button>
+            <button class="filter-button" data-filter="fed">The Fed</button>
+            <button class="filter-button" data-filter="regulation">Regulasi</button>
+            <button class="filter-button" data-filter="macro">Ekonomi Makro</button>
+            <button class="filter-button" data-filter="adoption">Adopsi</button>
+            <button class="filter-button" data-filter="defi">DeFi</button>
+        </div>
+        
+        <div id="news-container">
+            <div class="loader"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Telegram WebApp
+        const webApp = window.Telegram.WebApp;
+        webApp.expand();
+        webApp.ready();
+        
+        // Sample news data - in a real app, you would fetch this from an API
+        const newsData = [
+            {
+                id: 1,
+                title: "The Fed Mempertahankan Suku Bunga, Bitcoin Melonjak 5%",
+                source: "CryptoNews",
+                date: "18 May 2025",
+                summary: "Federal Reserve AS memutuskan untuk mempertahankan suku bunga pada level saat ini. Jerome Powell menyatakan bahwa inflasi mulai terkendali. Pasar crypto bereaksi positif dengan Bitcoin naik 5% dalam 24 jam.",
+                categories: ["fed", "macro", "bitcoin"]
+            },
+            {
+                id: 2,
+                title: "SEC Mengeluarkan Panduan Baru untuk Aset Crypto",
+                source: "Coindesk",
+                date: "16 May 2025",
+                summary: "Securities and Exchange Commission (SEC) telah menerbitkan panduan regulasi baru untuk aset kripto. Panduan ini memberikan kejelasan tentang klasifikasi token sebagai sekuritas.",
+                categories: ["regulation", "sec"]
+            },
+            {
+                id: 3,
+                title: "Inflasi AS Turun ke 2.8%, Ethereum Rally",
+                source: "Bloomberg Crypto",
+                date: "14 May 2025",
+                summary: "Data inflasi AS terbaru menunjukkan penurunan ke level 2.8%, lebih rendah dari perkiraan ekonom. Ethereum merespons dengan kenaikan 7.2% karena pasar mengantisipasi kebijakan moneter yang lebih longgar.",
+                categories: ["macro", "inflation", "ethereum"]
+            },
+            {
+                id: 4,
+                title: "Bank Sentral Eropa Membahas CBDC, XRP Terpengaruh",
+                source: "Cointelegraph",
+                date: "13 May 2025",
+                summary: "Bank Sentral Eropa mengadakan pertemuan untuk membahas kemajuan Euro Digital (CBDC). Diskusi ini memengaruhi harga XRP yang memiliki fokus pada sistem pembayaran lintas batas.",
+                categories: ["regulation", "cbdc", "xrp"]
+            },
+            {
+                id: 5,
+                title: "Protokol DeFi Baru Menarik $500 Juta TVL dalam 48 Jam",
+                source: "DeFi Pulse",
+                date: "12 May 2025",
+                summary: "Protokol DeFi baru bernama YieldMaximizer telah meluncur di jaringan Ethereum dan menarik lebih dari $500 juta dalam Total Value Locked hanya dalam 48 jam pertama.",
+                categories: ["defi", "ethereum"]
+            },
+            {
+                id: 6,
+                title: "Walmart Mengintegrasikan Pembayaran Bitcoin di Semua Toko AS",
+                source: "CNBC Crypto",
+                date: "10 May 2025",
+                summary: "Raksasa ritel Walmart mengumumkan akan menerima pembayaran Bitcoin di semua toko di AS mulai bulan depan. Ini menandai adopsi crypto terbesar oleh retailer hingga saat ini.",
+                categories: ["adoption", "bitcoin"]
+            },
+            {
+                id: 7,
+                title: "Data Ketenagakerjaan AS Lebih Lemah dari Perkiraan, Crypto Berfluktuasi",
+                source: "CryptoNews",
+                date: "9 May 2025",
+                summary: "Laporan ketenagakerjaan AS menunjukkan penambahan pekerjaan yang lebih rendah dari perkiraan. Pasar crypto menunjukkan volatilitas karena trader mengevaluasi dampaknya terhadap kebijakan The Fed.",
+                categories: ["fed", "macro", "employment"]
+            },
+            {
+                id: 8,
+                title: "China Melonggarkan Larangan Mining Crypto di Beberapa Wilayah",
+                source: "South China Morning Post",
+                date: "8 May 2025",
+                summary: "Pemerintah China dilaporkan melonggarkan larangan mining cryptocurrency di beberapa provinsi sebagai bagian dari strategi blockchain nasional yang direvisi.",
+                categories: ["regulation", "mining", "china"]
+            },
+            {
+                id: 9,
+                title: "The Fed Merilis Studi tentang Dampak Stablecoin pada Stabilitas Keuangan",
+                source: "Federal Reserve",
+                date: "7 May 2025",
+                summary: "Federal Reserve menerbitkan studi komprehensif mengenai dampak stablecoin pada stabilitas sistem keuangan. Studi tersebut menyoroti risiko dan peluang dari adopsi stablecoin yang lebih luas.",
+                categories: ["fed", "stablecoin", "regulation"]
+            },
+            {
+                id: 10,
+                title: "IMF Memperingatkan Negara Berkembang tentang Risiko Adopsi Crypto",
+                source: "IMF Blog",
+                date: "5 May 2025",
+                summary: "Dana Moneter Internasional (IMF) mengeluarkan peringatan kepada negara-negara berkembang tentang risiko sistemik dari adopsi cryptocurrency sebagai mata uang resmi tanpa kerangka regulasi yang memadai.",
+                categories: ["macro", "adoption", "regulation", "imf"]
+            }
+        ];
+        
+        // Function to render news items
+        function renderNews(filteredNews = newsData) {
+            const newsContainer = document.getElementById('news-container');
+            newsContainer.innerHTML = '';
+            
+            if (filteredNews.length === 0) {
+                newsContainer.innerHTML = '<p style="text-align: center; color: #666;">Tidak ada berita yang ditemukan.</p>';
+                return;
+            }
+            
+            filteredNews.forEach(news => {
+                const newsItem = document.createElement('div');
+                newsItem.className = 'news-item';
+                
+                let categoryHTML = '';
+                news.categories.forEach(category => {
+                    categoryHTML += `<span class="category-tag">${category}</span>`;
+                });
+                
+                newsItem.innerHTML = `
+                    <div class="news-title">${news.title}</div>
+                    <div class="news-source">${news.source}</div>
+                    <div class="news-date">${news.date}</div>
+                    <div class="category-container">${categoryHTML}</div>
+                    <div class="news-summary">${news.summary}</div>
+                `;
+                
+                newsContainer.appendChild(newsItem);
+            });
+        }
+        
+        // Filter news based on selected category
+        function filterNews(category) {
+            if (category === 'all') {
+                renderNews();
+                return;
+            }
+            
+            let filteredNews;
+            
+            if (category === 'fed') {
+                filteredNews = newsData.filter(news => news.categories.includes('fed'));
+            } else if (category === 'regulation') {
+                filteredNews = newsData.filter(news => 
+                    news.categories.includes('regulation') || 
+                    news.categories.includes('sec') ||
+                    news.categories.includes('cbdc')
+                );
+            } else if (category === 'macro') {
+                filteredNews = newsData.filter(news => 
+                    news.categories.includes('macro') || 
+                    news.categories.includes('inflation') ||
+                    news.categories.includes('employment') ||
+                    news.categories.includes('imf')
+                );
+            } else if (category === 'adoption') {
+                filteredNews = newsData.filter(news => news.categories.includes('adoption'));
+            } else if (category === 'defi') {
+                filteredNews = newsData.filter(news => news.categories.includes('defi'));
+            }
+            
+            renderNews(filteredNews);
+        }
+        
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Render initial news
+            renderNews();
+            
+            // Add filter button event listeners
+            const filterButtons = document.querySelectorAll('.filter-button');
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    
+                    // Filter news
+                    const filterCategory = this.getAttribute('data-filter');
+                    filterNews(filterCategory);
+                });
+            });
+            
+            // In a real app, you would fetch news from an API
+            // fetchCryptoNews();
+        });
+        
+        // Example function to fetch news from an API (not implemented in this demo)
+        function fetchCryptoNews() {
+            // In a real app, you would implement API calls here
+            // Example:
+            // fetch('https://api.cryptonews.com/news')
+            //    .then(response => response.json())
+            //    .then(data => {
+            //        // Process and render news
+            //        renderNews(data.news);
+            //    })
+            //    .catch(error => {
+            //        console.error('Error fetching news:', error);
+            //    });
+        }
+    </script>
+</body>
+</html>
